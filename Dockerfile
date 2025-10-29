@@ -10,12 +10,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create a non-root user
-RUN adduser --system --group appuser
-USER appuser
-
 COPY ./api /app/api
+COPY alembic /app/alembic
+COPY alembic.ini /app/alembic.ini
 
 EXPOSE 8000
-
 CMD ["sh", "-c", "alembic upgrade head && uvicorn api.app.main:app --host 0.0.0.0 --port 8000"]
