@@ -33,7 +33,7 @@ def get_db():
         db.close()
 
 @app.post("/shorten", response_model=schemas.URLShortened, status_code=201)
-def shorten_url(url: schemas.URLBase, db: Session = Depends(get_db)):
+def shorten_url(url: schemas.URLBase, db: Session = Depends(get_db), api_key: str = Depends(security.get_api_key)):
     """
     Accepts a long URL and returns a unique 7-character short code.
     Validates that the input is a proper URL.
@@ -75,7 +75,7 @@ def redirect_to_long_url(short_code: str, db: Session = Depends(get_db)):
         cache.setex(short_code, 86400, str(db_url.long_url))
     except redis.ConnectionError as e:
         logger.error(f"Redis connection error: {e}")
-        
+
     return RedirectResponse(url=str(db_url.long_url))
 
 @app.get("/analytics/{short_code}", response_model=schemas.URLAnalytics)
