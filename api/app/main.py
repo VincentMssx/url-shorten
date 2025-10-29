@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
+from api.app import crud, models, schemas, security
 from .database import SessionLocal, engine
 
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +15,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="URL Shortener API",
-    description="A simple URL shortening service.",
+    description="A simple and efficient URL shortening service.",
     version="1.0.0"
 )
 
@@ -50,15 +50,13 @@ def redirect_to_long_url(short_code: str, db: Session = Depends(get_db)):
     """
     # 1. First, check the Redis cache
     long_url = cache.get(short_code)
-    
+
     if long_url:
-        logger.info(f"Cache hit for short_code: {short_code}")
-        logger.info(f"long_url = {long_url}")
         return RedirectResponse(url=str(long_url))
 
     # 2. Cache Miss: Fallback to PostgreSQL
     db_url = crud.get_url_by_short_code(db, short_code=short_code)
-
+    
     if not db_url:
         logger.warning(f"Short code not found in database: {short_code}")
         raise HTTPException(status_code=404, detail="Short code not found")
@@ -66,12 +64,13 @@ def redirect_to_long_url(short_code: str, db: Session = Depends(get_db)):
     # 3. Increment hit count in the database
     crud.increment_hit_count(db, db_url)
 
-    # 4. Populate Redis cache for future requests with a 24-hour Time-To-Live
+    # 4. Populate Redis cache for future requests with a 24-hour TTL (Time-To-Live)
     cache.setex(short_code, 86400, str(db_url.long_url))
+
     return RedirectResponse(url=str(db_url.long_url))
 
 @app.get("/analytics/{short_code}", response_model=schemas.URLAnalytics)
-def get_analytics(short_code: str, db: Session = Depends(get_db)):
+def get_analytics(short_code: str, db: Session = Depends(get_db), api_key: str = Depends(security.get_api_key)):
     """
     Returns the hit count and original URL for a given short code.
     """
