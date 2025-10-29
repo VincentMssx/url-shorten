@@ -2,12 +2,24 @@ import hashlib
 from sqlalchemy.orm import Session
 from pydantic import HttpUrl
 from fastapi import HTTPException, status
+from datetime import datetime
+from typing import Optional, cast, Tuple
+import logging
 
 from . import models, schemas
 
-def get_url_by_short_code(db: Session, short_code: str):
+logger = logging.getLogger(__name__)
+
+def get_url_by_short_code(db: Session, short_code: str) -> Tuple[Optional[models.URL], bool]:
     """Retrieve a URL from the database by its short code."""
-    return db.query(models.URL).filter(models.URL.short_code == short_code).first()
+    db_url = db.query(models.URL).filter(models.URL.short_code == short_code).first()
+    is_expired = False
+    if db_url:
+        expires_at: Optional[datetime] = cast(Optional[datetime], db_url.expires_at)
+        if expires_at and expires_at < datetime.now():
+            is_expired = True
+            # Do not set db_url to None here, let main.py handle the HTTPException
+    return db_url, is_expired
 
 def create_short_url(db: Session, url: schemas.URLBase):
     """Create a new short URL, handling potential hash collisions."""
@@ -34,7 +46,7 @@ def create_short_url(db: Session, url: schemas.URLBase):
         short_code = hex_digest[:7] # Take the first 7 characters
 
         # 2. Check if the generated short_code already exists
-        existing_short_code = get_url_by_short_code(db, short_code)
+        existing_short_code, _ = get_url_by_short_code(db, short_code) # Ignore is_expired here
 
         if not existing_short_code:
             # If it's unique, break the loop
@@ -44,10 +56,12 @@ def create_short_url(db: Session, url: schemas.URLBase):
         long_url_to_hash += "|collision"
 
     # Create the new database record
+    logger.info(f"Creating new URL record with: long_url={str(validated_url)}, short_code={short_code}, hits=0, expires_at={url.expires_at}")
     db_url = models.URL(
         long_url=str(validated_url),
         short_code=short_code,
-        hits=0
+        hits=0,
+        expires_at=url.expires_at
     )
     db.add(db_url)
     db.commit()

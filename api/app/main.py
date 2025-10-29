@@ -61,8 +61,12 @@ def redirect_to_long_url(short_code: str, db: Session = Depends(get_db)):
         return RedirectResponse(url=str(long_url))
 
     # 2. Cache Miss: Fallback to PostgreSQL
-    db_url = crud.get_url_by_short_code(db, short_code=short_code)
+    db_url, is_expired = crud.get_url_by_short_code(db, short_code=short_code)
     
+    if is_expired:
+        logger.warning(f"Short code expired: {short_code}")
+        raise HTTPException(status_code=400, detail="Short URL has expired")
+
     if not db_url:
         logger.warning(f"Short code not found in database: {short_code}")
         raise HTTPException(status_code=404, detail="Short code not found")
@@ -83,7 +87,10 @@ def get_analytics(short_code: str, db: Session = Depends(get_db), api_key: str =
     """
     Returns the hit count and original URL for a given short code.
     """
-    db_url = crud.get_url_by_short_code(db, short_code=short_code)
+    db_url, is_expired = crud.get_url_by_short_code(db, short_code=short_code)
+    
+    if is_expired:
+        raise HTTPException(status_code=400, detail="Short URL has expired")
     
     if not db_url:
         raise HTTPException(status_code=404, detail="Short code not found")
