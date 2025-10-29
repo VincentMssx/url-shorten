@@ -50,7 +50,13 @@ def redirect_to_long_url(short_code: str, db: Session = Depends(get_db)):
     """
     # 1. First, check the Redis cache
     long_url = cache.get(short_code)
-
+    long_url = None
+    try:
+        # 1. First, check the Redis cache
+        long_url = cache.get(short_code)
+    except redis.ConnectionError as e:
+        logger.error(f"Redis connection error: {e}")
+        
     if long_url:
         return RedirectResponse(url=str(long_url))
 
@@ -65,8 +71,11 @@ def redirect_to_long_url(short_code: str, db: Session = Depends(get_db)):
     crud.increment_hit_count(db, db_url)
 
     # 4. Populate Redis cache for future requests with a 24-hour TTL (Time-To-Live)
-    cache.setex(short_code, 86400, str(db_url.long_url))
-
+    try:
+        cache.setex(short_code, 86400, str(db_url.long_url))
+    except redis.ConnectionError as e:
+        logger.error(f"Redis connection error: {e}")
+        
     return RedirectResponse(url=str(db_url.long_url))
 
 @app.get("/analytics/{short_code}", response_model=schemas.URLAnalytics)
