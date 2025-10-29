@@ -9,6 +9,7 @@ pydantic==2.12.3
 pydantic-core==2.41.4
 annotated-types==0.7.0
 typing-extensions==4.15.0
+pydantic
 pytest==8.4.2
 httpx==0.28.1
 anyio==4.11.0

@@ -1,5 +1,8 @@
 import hashlib
 from sqlalchemy.orm import Session
+from pydantic import HttpUrl
+from fastapi import HTTPException, status
+
 from . import models, schemas
 
 def get_url_by_short_code(db: Session, short_code: str):
@@ -8,12 +11,20 @@ def get_url_by_short_code(db: Session, short_code: str):
 
 def create_short_url(db: Session, url: schemas.URLBase):
     """Create a new short URL, handling potential hash collisions."""
+    try:
+        validated_url = HttpUrl(url.long_url)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid URL format"
+        )
+
     # Check if the long URL already exists
-    existing_url = db.query(models.URL).filter(models.URL.long_url == url.long_url).first()
+    existing_url = db.query(models.URL).filter(models.URL.long_url == str(validated_url)).first()
     if existing_url:
         return existing_url
 
-    long_url_to_hash = url.long_url
+    long_url_to_hash = str(validated_url)
     
     # Hashing and Collision Resolution
     while True:
@@ -34,7 +45,7 @@ def create_short_url(db: Session, url: schemas.URLBase):
 
     # Create the new database record
     db_url = models.URL(
-        long_url=url.long_url,
+        long_url=str(validated_url),
         short_code=short_code,
         hits=0
     )
