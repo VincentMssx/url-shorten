@@ -15,7 +15,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="URL Shortener API",
-    description="A simple and efficient URL shortening service.",
+    description="A simple URL shortening service.",
     version="1.0.0"
 )
 
@@ -51,7 +51,6 @@ def redirect_to_long_url(short_code: str, db: Session = Depends(get_db)):
     # 1. First, check the Redis cache
     long_url = None
     try:
-        # 1. First, check the Redis cache
         long_url = cache.get(short_code)
     except redis.ConnectionError as e:
         logger.error(f"Redis connection error: {e}")

@@ -18,7 +18,6 @@ def get_url_by_short_code(db: Session, short_code: str) -> Tuple[Optional[models
         expires_at: Optional[datetime] = cast(Optional[datetime], db_url.expires_at)
         if expires_at and expires_at < datetime.now():
             is_expired = True
-            # Do not set db_url to None here, let main.py handle the HTTPException
     return db_url, is_expired
 
 def create_short_url(db: Session, url: schemas.URLBase):

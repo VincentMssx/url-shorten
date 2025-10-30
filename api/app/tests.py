@@ -41,7 +41,7 @@ def test_redirect_to_long_url():
     response = client.post("/shorten", json={"long_url": "https://www.google.com"}, headers={"X-API-KEY": API_KEY})
     short_code = response.json()["short_code"]
 
-    # Then, test the redirection
+    # Test the redirection
     response = client.get(f"/{short_code}", follow_redirects=False)
     assert response.status_code == 307
     assert response.headers["location"] == "https://www.google.com/"
@@ -64,10 +64,10 @@ def test_get_analytics():
     response = client.post("/shorten", json={"long_url": "https://www.google.com"}, headers={"X-API-KEY": API_KEY})
     short_code = response.json()["short_code"]
 
-    # Then, access it to increment the hit count
+    # Access it to increment the hit count
     client.get(f"/{short_code}", follow_redirects=False)
 
-    # Finally, get the analytics with the correct API key
+    # Try to get the analytics with the correct API key
     response = client.get(f"/analytics/{short_code}", headers={"X-API-KEY": API_KEY})
     assert response.status_code == 200
     data = response.json()

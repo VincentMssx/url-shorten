@@ -1,6 +1,6 @@
 # URL Shortener API
 
-This is a simple and efficient URL shortening service built with FastAPI, SQLAlchemy, PostgreSQL, and Redis.
+This is a simple URL shortening service built with FastAPI, SQLAlchemy, PostgreSQL, Docker and Redis.
 
 ## Features
 
@@ -19,11 +19,11 @@ Follow these steps to get the project up and running on your local machine.
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
+Ensure you have the following installed:
 
 *   **Git:** For cloning the repository.
 *   **Docker Desktop:** (or Docker Engine) For running the containerized services.
-*   **Python 3.12+:** For virtual environment and local development (optional if only using Docker).
+*   **Python 3.12+:** For virtual environment and local development.
 *   **pip:** Python package installer.
 
 ### 1. Clone the Repository
@@ -35,8 +35,6 @@ cd url-shorten
 
 ### 2. Virtual Environment (Optional but Recommended)
 
-It's good practice to create and activate a virtual environment for Python projects.
-
 ```bash
 python -m venv venv
 # On Windows
@@ -47,7 +45,7 @@ source venv/bin/activate
 
 ### 3. Install Dependencies
 
-Install the project's runtime and development dependencies. It's safe to install development dependencies globally if running in `venv`.
+Install the project's runtime and development dependencies.
 
 ```bash
 pip install -r requirements.txt
@@ -81,21 +79,18 @@ docker-compose down
 
 ### 5. Database Migrations (Alembic)
 
-The project uses Alembic for database schema management. This is essential to ensure your database structure matches the application's models.
+The project uses Alembic for database schema management. This ensure the database structure matches the application's models.
 
 #### a. Generate Initial Migration (First Time Setup or Schema Changes)
 
-After setting up your models in `api/app/models.py`, generate a migration script. **Run this command inside the `api` container:**
 
 ```bash
-docker-compose exec api alembic revision --autogenerate -m "Initial migration" # or a descriptive message
+docker-compose exec api alembic revision --autogenerate -m "Initial migration"
 ```
-
-You will need to review and potentially edit the generated migration script in `alembic/versions/` to ensure it performs the desired changes.
 
 #### b. Apply Migrations
 
-Apply the pending migrations to your database. **Run this command inside the `api` container:**
+Apply the pending migrations to the database. **Run this command inside the `api` container:**
 
 ```bash
 docker-compose exec api alembic upgrade head
@@ -113,9 +108,9 @@ Access the interactive API documentation at: `http://localhost:8000/docs`
 
 **Using API Key on Swagger UI:**
 
-1.  Click the "Authorize" button (or lock icon next to an endpoint).
+1.  Click the "Authorize" button
 2.  Enter your API key (`mysecretapikey` by default) in the `X-API-KEY` field.
-3.  Click "Authorize" and then "Close". Subsequent requests from Swagger UI will include the API key.
+3.  Click "Authorize". Subsequent requests from Swagger UI will include the API key.
 
 #### b. API Usage Examples (cURL)
 
@@ -123,22 +118,31 @@ Here are some cURL commands to interact with the API.
 
 *   **Shorten a URL:**
     ```bash
-    curl -X POST "http://localhost:8000/shorten" \
-      -H "Content-Type: application/json" \
-      -H "X-API-KEY: mysecretapikey" \
-      -d '{"long_url": "https://www.google.com", "expires_at": "2025-12-31T23:59:59Z"}'
+    curl -X 'POST' \
+      'http://localhost:8000/shorten' \
+      -H 'accept: application/json' \
+      -H 'X-API-KEY: mysecretapikey' \
+      -H 'Content-Type: application/json' \
+      -d '{
+      "long_url": "https://github.com/VincentMssx/url-shorten/issues",
+      "expires_at": "2025-12-30T08:30:34.504542Z"
+    }'
     ```
     (Omit `"expires_at"` if you want to use the default 1-day expiration)
 
 *   **Redirect a Short URL:**
     ```bash
-    curl -i -X GET "http://localhost:8000/{YOUR_SHORT_CODE}"
+    curl -X 'GET' \
+      'http://localhost:8000/{YOUR_SHORT_CODE}' \
+      -H 'accept: */*'
     ```
 
 *   **Get Analytics for a Short URL:**
     ```bash
-    curl -X GET "http://localhost:8000/analytics/{YOUR_SHORT_CODE}" \
-      -H "X-API-KEY: mysecretapikey"
+    curl -X 'GET' \
+      'http://localhost:8000/analytics/{YOUR_SHORT_CODE}' \
+      -H 'accept: application/json' \
+      -H 'X-API-KEY: mysecretapikey'
     ```
 
 ## Technologies Used

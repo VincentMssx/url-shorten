@@ -1,4 +1,4 @@
-# The docker-compose is not meant to be uploaded to github, but for the sake of this exercise, here is the content of docker-compose.yml
+# The docker-compose is not meant to be pushed to github, but for the sake of this exercise, here is the content of docker-compose.yml
 
 services:
   db:
